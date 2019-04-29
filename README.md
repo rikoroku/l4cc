@@ -33,10 +33,26 @@ $ docker-compose build
 ## 開発
 
 ```
-$ docker-compose up -d
-$ docker-compose exec l4cc bash
+$ docker-compose up -d && docker-compose exec l4cc bash
 $ docker-compose stop
 ```
+
+### コンパイル
+
+```
+$ gcc -o l4cc l4cc.c
+$ ./l4cc 123 > tmp.s
+```
+
+### アセンブル
+
+```
+$ gcc -o tmp tmp.s
+$ ./tmp
+$ echo $?
+```
+
+
 ## 進捗管理
 [現在進行中のアンカーリンク)[https://www.sigbus.info/compilerbook/#関数呼び出しを含む例
 ]
