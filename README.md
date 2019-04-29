@@ -37,6 +37,12 @@ $ docker-compose up -d && docker-compose exec l4cc bash
 $ docker-compose stop
 ```
 
+### テスト
+
+```
+$ ./test.sh
+```
+
 ### コンパイル
 
 ```
