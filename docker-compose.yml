@@ -1,0 +1,8 @@
+version: '3'
+services:
+  l4cc:
+    build:
+      context: .
+    volumes:
+      - .:/src
+    tty: true
