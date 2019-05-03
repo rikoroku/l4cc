@@ -57,4 +57,4 @@ $ make test
 ```
 
 ## 進捗管理
-[現在進行中のアンカーリンク](https://www.sigbus.info/compilerbook/#ステップ2：加減算のできるコンパイラの作成)
+[現在進行中のアンカーリンク](https://www.sigbus.info/compilerbook/#スタックマシン)
