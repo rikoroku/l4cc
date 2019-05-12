@@ -5,15 +5,82 @@
 #include <string.h>
 
 enum {
-  TK_NUM = 256,
-  TK_EOF,
+  ND_NUM = 256,
 };
 
 typedef struct {
   int type;
   int val;
-  char *input;
 } Token;
+
+typedef struct Node {
+  int type;
+  struct Node *lhs; // 左辺
+  struct Node *rhs; // 右辺
+  int val;          // typeが整数の場合のみ使用
+} Node;
+
+Node *new_node(int type, Node *lhs, Node *rhs) {
+  Node *node = malloc(sizeof(Node));
+  node->type = type;
+  node->lhs = lhs;
+  node->rhs = rhs;
+  return node;
+}
+
+Node *new_node_num(int val) {
+  Node *node = malloc(sizeof(Node));
+  node->type = ND_NUM;
+  node->val = val;
+  return node;
+}
+
+int consume(int type) {
+  if (tokens[pos].type != type)
+    return 0;
+  pos++;
+  return 1;
+}
+
+Node *add() {
+  Node *node = mul();
+
+  for (;;) {
+    if (consume('+'))
+      node = new_node('+', node, mul());
+    else if (consume('-'))
+      node = new_node('-', node, mul());
+    else
+      return node;
+  }
+}
+
+Node *mul() {
+  Node *node = term();
+
+  for (;;) {
+    if (consume('+'))
+      node = new_node('*', node, term());
+    else if (consume('/'))
+      node = new_node('/', node, term());
+    else
+      return node;
+  }
+}
+
+Node *term() {
+  if (consume('(')) {
+    Node *node = add();
+    if (!consume(')'))
+      error("開き括弧に対応する閉じ括弧がありません: %s", tokensp[pos].input);
+    return node;
+  }
+
+  if (tokens[pos].type == ND_NUM)
+    return new_node_num(tokens[pos++].val);
+
+  error("数値でも開き括弧でもないトークンです: %s", tokens[pos].input);
+}
 
 Token tokens[100];
 
@@ -57,6 +124,36 @@ void tokenize(char *p) {
   tokens[i].input = p;
 }
 
+void gen(Node *node) {
+  if (node->type == ND_NUM) {
+    printf("  push %d\n", node->val);
+    return;
+  }
+
+  gen(node->lhs);
+  gen(node->rhs);
+
+  printf("  pop rdi\n");
+  printf("  pop rax\n");
+
+  switch (node->type) {
+  case '+':
+    printf("  add rax, rdi\n");
+    break;
+  case '-':
+    printf("  sub rax, rdi\n");
+    break;
+  case '*':
+    printf("  mul rdi\n");
+    break;
+  case '/':
+    printf("  mov rdx, 0\n");
+    printf("  div rdi\n");
+  }
+
+  printf("  push rax\n");
+}
+
 int main(int argc, char **argv) {
   if (argc != 2) {
     fprintf(stderr, "引数の個数が正しくありません\n");
@@ -64,38 +161,15 @@ int main(int argc, char **argv) {
   }
 
   tokenize(argv[1]);
+  Node *node = add();
 
   printf(".intel_syntax noprefix\n");
   printf(".global main\n");
   printf("main:\n");
 
-  if (tokens[0].type != TK_NUM)
-    error("最初の項が数ではありません");
-  printf("  mov rax, %d\n", tokens[0].val);
+  gen(node);
 
-  int i = 1;
-  while (tokens[i].type != TK_EOF) {
-    if (tokens[i].type == '+') {
-      i++;
-      if (tokens[i].type != TK_NUM)
-        error("予期しないトークンです: %s", tokens[i].input);
-      printf("  add rax, %d\n", tokens[i].val);
-      i++;
-      continue;
-    }
-
-    if (tokens[i].type == '-') {
-      i++;
-      if (tokens[i].type != TK_NUM)
-        error("予期しないトークンです: %s", tokens[i].input);
-      printf("  sub rax, %d\n", tokens[i].val);
-      i++;
-      continue;
-    }
-
-    error("予期しないトークンです: %s", tokens[i].input);
-  }
-
+  printf("  pop rax\n");
   printf("  ret\n");
   return 0;
 }
